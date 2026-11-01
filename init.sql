@@ -25,3 +25,5 @@ CREATE TABLE short_urls (
 CREATE INDEX idx_short_urls_expires
     ON short_urls (expires_at)
     WHERE expires_at IS NOT NULL;
+
+CREATE SEQUENCE kgs_counter MINVALUE 0 START 0;
