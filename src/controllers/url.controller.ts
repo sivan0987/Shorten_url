@@ -11,5 +11,6 @@ export async function shorten(req: Request, res: Response) {
 
 export async function redirect(req: Request<{ code: string }>, res: Response) {
   const originalUrl = await urlService.getOriginalUrl(req.params.code);
+  
   res.redirect(302, originalUrl);
 }

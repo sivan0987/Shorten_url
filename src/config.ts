@@ -18,4 +18,8 @@ export const config = {
     password: required("DB_PASSWORD"),
     database: required("DB_NAME"),
   },
+  redis: {
+    host: required("REDIS_HOST"),
+    port: Number(required("REDIS_PORT")),
+  },
 };
