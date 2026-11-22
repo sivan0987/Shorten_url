@@ -10,11 +10,34 @@ services:
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 4
   redis:
     image: redis:7
     command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
     ports:
       - "6379:6379"
+  # Runs once on every "up": fills the key stock if it is low, then exits
+  seed:
+    build: .
+    command: ["npx", "tsx", "src/scripts/seed-keys.ts"]
+    environment:
+      # config.ts requires all of these, even the ones seed does not use
+      PORT: 3000
+      BASE_URL: http://localhost:3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
   server:
     build: .
     ports:
@@ -29,6 +52,11 @@ services:
       DB_NAME: ${DB_NAME}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
 volumes:
   pgdata:
     

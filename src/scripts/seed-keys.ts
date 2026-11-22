@@ -3,6 +3,8 @@ import { codeForNumber } from "../utils/base62";
 
 const TOTAL = 100_000;
 const BATCH_SIZE = 1_000;
+// Refill only when the stock of free codes drops below this
+const MIN_AVAILABLE = 10_000;
 
 async function main() {
   // A counter that lives in Postgres and remembers where we stopped,
@@ -10,6 +12,18 @@ async function main() {
   await pool.query(
     "CREATE SEQUENCE IF NOT EXISTS kgs_counter MINVALUE 0 START 0"
   );
+
+  // Safe to run on every startup: skip if there are still enough free codes
+  const check = await pool.query(
+    "SELECT COUNT(*) AS n FROM preallocated_keys WHERE status = 'available'"
+  );
+  const available = Number(check.rows[0].n); // pg returns COUNT as a string
+
+  if (available >= MIN_AVAILABLE) {
+    console.log(`Enough keys (${available}), skipping`);
+    await pool.end();
+    return;
+  }
 
   let inserted = 0;
 
