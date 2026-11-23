@@ -28,6 +28,12 @@ export class LinkExpiredError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor() {
+    super(429, "Too many requests");
+  }
+}
+
 export class NoKeysAvailableError extends AppError {
   constructor() {
     super(503, "No keys available");
