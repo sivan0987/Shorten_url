@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import * as db from "../infra/db";
 import * as keyRepository from "./key.repository";
+import { couldBeKgsCode } from "../utils/base62";
 
 // Data access for the short_urls table (the links)
 
@@ -19,6 +20,27 @@ export async function createShortUrl(originalUrl: string): Promise<string | null
     if (!code) return null;
     await insertUrl(client, code, originalUrl);
     return code;
+  });
+}
+
+// Create a link with a code the user chose. One transaction, like createShortUrl.
+// Returns false if the code is already taken.
+export async function createCustomUrl(code: string, originalUrl: string): Promise<boolean> {
+  return db.withTransaction(async (client) => {
+    // Only a code the KGS could produce must be blocked in the stock
+    if (couldBeKgsCode(code)) {
+      const reserved = await keyRepository.reserveKey(client, code);
+      if (!reserved) return false;
+    }
+
+    // ON CONFLICT: two users asking for the same code at once -> one gets false
+    const result = await client.query(
+      `INSERT INTO short_urls (short_code, original_url, is_custom)
+       VALUES ($1, $2, TRUE)
+       ON CONFLICT (short_code) DO NOTHING`,
+      [code, originalUrl]
+    );
+    return result.rowCount === 1;
   });
 }
 

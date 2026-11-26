@@ -5,7 +5,7 @@ import * as urlService from "../services/url.service";
 // Errors thrown by the service go automatically to the error-handler middleware.
 
 export async function shorten(req: Request, res: Response) {
-  const result = await urlService.shortenUrl(req.body.url);
+  const result = await urlService.shortenUrl(req.body.url, req.body.customCode);
   res.status(201).json(result);
 }
 

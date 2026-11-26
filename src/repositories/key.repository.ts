@@ -19,3 +19,26 @@ export async function allocateKey(client: PoolClient): Promise<string | null> {
   );
   return result.rows[0]?.short_code ?? null;
 }
+
+// Reserve a code a user chose, so the KGS will never hand it out.
+// Returns false if the code is already taken.
+export async function reserveKey(client: PoolClient, code: string): Promise<boolean> {
+  // Case 1: the code is in the stock and free -> take it (this locks the row)
+  const updated = await client.query(
+    `UPDATE preallocated_keys
+     SET status = 'allocated'
+     WHERE short_code = $1 AND status = 'available'`,
+    [code]
+  );
+  if (updated.rowCount === 1) return true;
+
+  // Case 2: the code is not in the stock yet -> add it as taken.
+  // Case 3: it is already taken -> the INSERT conflicts and adds nothing.
+  const inserted = await client.query(
+    `INSERT INTO preallocated_keys (short_code, status)
+     VALUES ($1, 'allocated')
+     ON CONFLICT (short_code) DO NOTHING`,
+    [code]
+  );
+  return inserted.rowCount === 1;
+}

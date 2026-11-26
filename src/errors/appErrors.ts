@@ -16,6 +16,18 @@ export class InvalidUrlError extends AppError {
   }
 }
 
+export class InvalidCustomCodeError extends AppError {
+  constructor() {
+    super(400, "Invalid custom code: use 3-16 letters, digits or '-', and not a reserved word");
+  }
+}
+
+export class CodeTakenError extends AppError {
+  constructor() {
+    super(409, "Custom code already taken");
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor() {
     super(404, "Link not found");
